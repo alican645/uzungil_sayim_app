@@ -8,6 +8,7 @@ import '../models/depo_api_model.dart';
 abstract class IStockRemoteDataSource {
   Future<StockApiModel?> getStockByBarcode(String barcode);
   Future<List<DepoApiModel>> getDepos();
+  Future<String> sendToVega(List<Map<String, dynamic>> data);
 }
 
 class StockRemoteDataSourceImpl implements IStockRemoteDataSource {
@@ -47,6 +48,39 @@ class StockRemoteDataSourceImpl implements IStockRemoteDataSource {
     } on DioException catch (e) {
       throw ApiException.fromDioException(e);
     } catch (e) {
+      throw ServerFailure(e.toString());
+    }
+  }
+
+  @override
+  Future<String> sendToVega(List<Map<String, dynamic>> data) async {
+    try {
+      // The user specified: base url de /SendToVega end pointli url e jsonList'i göndereceğiz
+      // Assuming it's a POST request
+      final response = await dio.post(
+        '/SayimAktarmaApi/SendToVega',
+        data: data, // dio handles list serialization
+      );
+
+      // Expected response: { success = True, data = 2, message = 2 kayıt başarıyla aktarıldı. }
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final body = response.data;
+        // Check success
+        final bool success = body['success'] == true;
+        final String message =
+            body['message']?.toString() ?? 'İşlem tamamlandı';
+
+        if (success) {
+          return message;
+        } else {
+          throw ServerFailure(message);
+        }
+      }
+      throw ServerFailure('İşlem başarısız: HTML ${response.statusCode}');
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    } catch (e) {
+      if (e is Failure) rethrow; // If we threw ServerFailure above
       throw ServerFailure(e.toString());
     }
   }

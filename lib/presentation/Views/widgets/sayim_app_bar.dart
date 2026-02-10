@@ -61,36 +61,6 @@ class SayimAppBar extends StatelessWidget {
               ),
             ],
           ),
-          BlocBuilder<StockBloc, StockState>(
-            builder: (context, state) {
-              int count = 0;
-              if (state is StockLoaded) {
-                count = state.stocks.length;
-              }
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFD4EDDA), Color(0xFFC3E6CB)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '$count Kayıt',
-                  style: const TextStyle(
-                    color: Color(0xFF155724),
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              );
-            },
-          ),
         ],
       ),
     );

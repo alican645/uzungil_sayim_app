@@ -148,7 +148,36 @@ class StockListView extends StatelessWidget {
           },
         ),
         Expanded(
-          child: BlocBuilder<StockBloc, StockState>(
+          child: BlocConsumer<StockBloc, StockState>(
+            listener: (context, state) {
+              if (state is StockActionSuccess) {
+                final stockBloc = context.read<StockBloc>();
+                showDialog(
+                  context: context,
+                  builder: (dialogContext) => AlertDialog(
+                    title: const Text('Başarılı'),
+                    content: Text(state.message),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          stockBloc.add(ClearLocalStocks());
+                          Navigator.pop(dialogContext);
+                        },
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.red,
+                        ),
+                        child: const Text('Listeyi Temizle'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Tamam'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+            },
+            buildWhen: (previous, current) => current is! StockActionSuccess,
             builder: (context, state) {
               if (state is StockLoading) {
                 return const Center(child: CircularProgressIndicator());

@@ -73,4 +73,12 @@ class DeleteLocalStock extends StockEvent {
 
 class ClearLocalStocks extends StockEvent {}
 
-class ProcessToVega extends StockEvent {}
+class ProcessToVega extends StockEvent {
+  final int year;
+  final int month;
+
+  const ProcessToVega({required this.year, required this.month});
+
+  @override
+  List<Object> get props => [year, month];
+}

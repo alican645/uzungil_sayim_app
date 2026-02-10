@@ -19,4 +19,6 @@ abstract class IStockRepository {
   Future<Either<Failure, void>> clearLocalStocks();
   Future<Either<Failure, List<StockCount>>> getAllLocalStocks();
   Future<Either<Failure, double>> getLocalTotalQuantity(String stockCode);
+
+  Future<Either<Failure, String>> sendToVega(List<Map<String, dynamic>> data);
 }

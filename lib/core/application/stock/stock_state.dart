@@ -62,3 +62,11 @@ class StockError extends StockState {
   @override
   List<Object?> get props => [message];
 }
+
+class StockActionSuccess extends StockState {
+  final String message;
+  const StockActionSuccess(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}

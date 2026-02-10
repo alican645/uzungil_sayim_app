@@ -167,4 +167,19 @@ class StockRepositoryImpl implements IStockRepository {
       return Left(CacheFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, String>> sendToVega(
+    List<Map<String, dynamic>> data,
+  ) async {
+    try {
+      final message = await remoteDataSource.sendToVega(data);
+      return Right(message);
+    } catch (e) {
+      if (e is Failure) {
+        return Left(e);
+      }
+      return Left(ServerFailure(e.toString()));
+    }
+  }
 }

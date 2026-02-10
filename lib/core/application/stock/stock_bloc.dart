@@ -179,11 +179,11 @@ class StockBloc extends Bloc<StockEvent, StockState> {
     // 1. Fetch all local stocks
     final result = await repository.getAllLocalStocks();
 
-    result.fold(
-      (failure) {
+    await result.fold(
+      (failure) async {
         debugPrint('Error fetching local stocks for Vega: ${failure.message}');
       },
-      (localStocks) {
+      (localStocks) async {
         // 2. Group by stockCode AND warehouseName
         final Map<String, StockCount> grouped = {};
 
@@ -197,8 +197,8 @@ class StockBloc extends Bloc<StockEvent, StockState> {
             final updated = StockCount(
               id: current.id,
               companyId: current.companyId,
-              year: current.year,
-              month: current.month,
+              year: event.year, // Use selected year
+              month: event.month, // Use selected month
               warehouseName: current.warehouseName,
               stockCode: current.stockCode,
               name: current.name,
@@ -211,7 +211,26 @@ class StockBloc extends Bloc<StockEvent, StockState> {
             );
             grouped[key] = updated;
           } else {
-            grouped[key] = item;
+            // Update the item with selected year/month if needed, or just use it for grouping logic if we were validting against it.
+            // Here we just want to ensure the OUTPUT reflects the selection.
+            // Since we are creating a new StockCount for aggregation, let's also update the "single" item case
+            // effectively "overriding" the year/month for the purpose of this export.
+            final updatedWithDate = StockCount(
+              id: item.id,
+              companyId: item.companyId,
+              year: event.year,
+              month: event.month,
+              warehouseName: item.warehouseName,
+              stockCode: item.stockCode,
+              name: item.name,
+              quantity: item.quantity,
+              countDate: item.countDate,
+              recordDate: item.recordDate,
+              description: item.description,
+              countType: item.countType,
+              barcode: item.barcode,
+            );
+            grouped[key] = updatedWithDate;
           }
         }
 
@@ -219,16 +238,46 @@ class StockBloc extends Bloc<StockEvent, StockState> {
         final List<Map<String, dynamic>> jsonList = grouped.values.map((e) {
           return {
             'stokKodu': e.stockCode,
-            'stokAdı': e.name,
+            'stokAdı': e.name, // match DTO: stokAdı
             'miktar': e.quantity,
             'depoAdi': e.warehouseName,
             'aciklama': e.description,
-            'SayimTipi': e.countType,
+            'sayimTipi': e.countType, // match DTO: sayimTipi (camelCase)
+            'yil': event.year,
+            'ay': event.month,
           };
         }).toList();
 
-        // 4. Print JSON
-        debugPrint(jsonEncode(jsonList));
+        // 4. Send to Vega
+        debugPrint(jsonEncode(jsonList)); // Keep logging for debug
+
+        // Save current state to restore after showing success message
+        final currentState = state;
+
+        final sendResult = await repository.sendToVega(jsonList);
+
+        sendResult.fold(
+          (failure) {
+            debugPrint('Vega send error: ${failure.message}');
+            // Optionally show error dialog here too, but for now just log
+            // or emit StockError if we want to show full screen error
+            // emit(StockError(failure.message));
+          },
+          (message) {
+            debugPrint('Vega send success: $message');
+            emit(StockActionSuccess(message));
+            // Restore previous state so the list is visible again
+            // We might need a small delay if BlocListener needs time to react,
+            // but usually it's synchronous for listener.
+            // However, to avoid "flash", user might see empty screen for a millisecond.
+            // Ideally we shouldn't emit new state that clears the list.
+            // But existing architecture uses inheritance.
+            // Let's emit and immediately restore.
+            if (currentState is StockLoaded) {
+              emit(currentState);
+            }
+          },
+        );
       },
     );
   }

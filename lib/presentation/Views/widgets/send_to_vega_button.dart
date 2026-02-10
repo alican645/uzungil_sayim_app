@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/application/stock/stock_bloc.dart';
 import '../../../../core/application/stock/stock_event.dart';
+import 'year_month_picker_dialog.dart';
 
 class SendToVegaButton extends StatelessWidget {
   const SendToVegaButton({super.key});
@@ -14,8 +15,21 @@ class SendToVegaButton extends StatelessWidget {
         width: double.infinity,
         height: 56,
         child: ElevatedButton(
-          onPressed: () {
-            context.read<StockBloc>().add(ProcessToVega());
+          onPressed: () async {
+            final now = DateTime.now();
+            final result = await showDialog<Map<String, int>>(
+              context: context,
+              builder: (context) => YearMonthPickerDialog(
+                initialYear: now.year,
+                initialMonth: now.month,
+              ),
+            );
+
+            if (result != null && context.mounted) {
+              context.read<StockBloc>().add(
+                ProcessToVega(year: result['year']!, month: result['month']!),
+              );
+            }
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF2D5A3D),
