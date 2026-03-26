@@ -9,6 +9,7 @@ class StockGroupItem extends StatefulWidget {
   final List<StockCount> items;
   final Function(int) onDelete;
   final Function(StockCount) onEdit;
+  final VoidCallback? onWarehouseEdit;
 
   const StockGroupItem({
     super.key,
@@ -17,6 +18,7 @@ class StockGroupItem extends StatefulWidget {
     required this.items,
     required this.onDelete,
     required this.onEdit,
+    this.onWarehouseEdit,
   });
 
   @override
@@ -156,6 +158,10 @@ class _StockGroupItemState extends State<StockGroupItem> {
                     ),
                   ],
                 ),
+              ),
+              IconButton(
+                onPressed: widget.onWarehouseEdit,
+                icon: const Icon(Icons.edit, color: Color(0xFF6B8F7A)),
               ),
               IconButton(
                 onPressed: () {

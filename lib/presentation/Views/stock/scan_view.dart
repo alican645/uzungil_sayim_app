@@ -19,6 +19,7 @@ class ScanView extends StatefulWidget {
 
 class _ScanViewState extends State<ScanView> {
   final MobileScannerController _scannerController = MobileScannerController();
+  final ScrollController _scrollController = ScrollController();
 
   String? _scannedCode;
   bool _isScanning = false;
@@ -35,7 +36,20 @@ class _ScanViewState extends State<ScanView> {
   @override
   void dispose() {
     _scannerController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   void _onDetect(BarcodeCapture capture) {
@@ -48,6 +62,7 @@ class _ScanViewState extends State<ScanView> {
         });
         context.read<StockBloc>().add(GetStockByBarcode(barcode.rawValue!));
         _scannerController.stop();
+        _scrollToBottom();
       }
     }
   }
@@ -100,6 +115,7 @@ class _ScanViewState extends State<ScanView> {
     }
 
     return SingleChildScrollView(
+      controller: _scrollController,
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
@@ -115,53 +131,76 @@ class _ScanViewState extends State<ScanView> {
                     .toList();
               }
 
-              return Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 15,
-                      offset: const Offset(0, 4),
+              return Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 15,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton2<String>(
+                          isExpanded: true,
+                          hint: const Text(
+                            'Depo Seçiniz',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                          items: items,
+                          value: _selectedDepoId,
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedDepoId = value;
+                            });
+                          },
+                          buttonStyleData: const ButtonStyleData(
+                            padding: EdgeInsets.symmetric(vertical: 2),
+                            height: 50,
+                            width: double.infinity,
+                          ),
+                          dropdownStyleData: DropdownStyleData(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                          ),
+                          menuItemStyleData: const MenuItemStyleData(
+                            padding: EdgeInsets.symmetric(horizontal: 16),
+                          ),
+                        ),
+                      ),
                     ),
-                  ],
-                ),
-                child: DropdownButtonFormField2<String>(
-                  isExpanded: true,
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(15),
+                  ),
+                  const SizedBox(width: 12),
+                  InkWell(
+                    onTap: () {
+                      context.read<StockBloc>().add(GetDepos());
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: (state is StockLoaded && state.deposLoaded)
+                            ? Colors.green.withOpacity(0.1)
+                            : Colors.orange.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.refresh,
+                        color: (state is StockLoaded && state.deposLoaded)
+                            ? Colors.green
+                            : Colors.orange,
+                        size: 24,
+                      ),
                     ),
                   ),
-                  hint: const Text(
-                    'Depo Seçiniz',
-                    style: TextStyle(fontSize: 14),
-                  ),
-                  items: items,
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedDepoId = value;
-                    });
-                  },
-                  buttonStyleData: const ButtonStyleData(
-                    padding: EdgeInsets.only(right: 8),
-                  ),
-                  iconStyleData: const IconStyleData(
-                    icon: Icon(Icons.arrow_drop_down, color: Colors.black45),
-                    iconSize: 24,
-                  ),
-                  dropdownStyleData: DropdownStyleData(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                  ),
-                  menuItemStyleData: const MenuItemStyleData(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                  ),
-                ),
+                ],
               );
             },
           ),
@@ -182,6 +221,7 @@ class _ScanViewState extends State<ScanView> {
                 _scannedCode = code;
               });
               context.read<StockBloc>().add(GetStockByBarcode(code));
+              _scrollToBottom();
             },
           ),
           if (_scannedCode != null) ...[

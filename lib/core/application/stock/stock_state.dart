@@ -20,6 +20,9 @@ class StockLoaded extends StockState {
   final StockItem? scannedItem; // Added scanned item
   final List<Depo> depos;
   final List<StockCount> localStocks;
+  final List<StockCount> filteredLocalStocks; // Added filtered local stocks
+  final bool deposLoaded;
+  final String countType;
 
   const StockLoaded({
     required this.stocks,
@@ -27,6 +30,9 @@ class StockLoaded extends StockState {
     this.scannedItem,
     this.depos = const [],
     this.localStocks = const [],
+    this.filteredLocalStocks = const [], // Initialize with empty list
+    this.deposLoaded = false,
+    this.countType = 'A',
   });
 
   @override
@@ -36,6 +42,9 @@ class StockLoaded extends StockState {
     scannedItem,
     depos,
     localStocks,
+    filteredLocalStocks,
+    deposLoaded,
+    countType,
   ];
 
   StockLoaded copyWith({
@@ -44,6 +53,9 @@ class StockLoaded extends StockState {
     StockItem? scannedItem,
     List<Depo>? depos,
     List<StockCount>? localStocks,
+    List<StockCount>? filteredLocalStocks,
+    bool? deposLoaded,
+    String? countType,
   }) {
     return StockLoaded(
       stocks: stocks ?? this.stocks,
@@ -51,6 +63,9 @@ class StockLoaded extends StockState {
       scannedItem: scannedItem, // Can be null
       depos: depos ?? this.depos,
       localStocks: localStocks ?? this.localStocks,
+      filteredLocalStocks: filteredLocalStocks ?? this.filteredLocalStocks,
+      deposLoaded: deposLoaded ?? this.deposLoaded,
+      countType: countType ?? this.countType,
     );
   }
 }

@@ -34,24 +34,45 @@ class ProductForm extends StatefulWidget {
 
 class _ProductFormState extends State<ProductForm> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  late TextEditingController _stockCodeController;
   late TextEditingController _nameController;
   late TextEditingController _quantityController;
 
+  bool get _isManualEntry => widget.scannedCode.isEmpty && widget.initialLocalCount == null;
+
   StockCount? _editingCount;
+  late FocusNode _quantityFocusNode;
 
   @override
   void initState() {
     super.initState();
+    _quantityFocusNode = FocusNode();
     _initControllers(firstTime: true);
+    _requestQuantityFocus();
+  }
+
+  void _requestQuantityFocus() {
+    // Skip auto-focus for manual entry - user starts with stock code field
+    if (_isManualEntry) return;
+    // Small delay to ensure widget is built and ready
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        _quantityFocusNode.requestFocus();
+      }
+    });
   }
 
   void _initControllers({bool firstTime = false}) {
     if (!firstTime) {
+      _stockCodeController.dispose();
       _nameController.dispose();
       _quantityController.dispose();
     }
 
     final item = widget.initialItem;
+    _stockCodeController = TextEditingController(
+      text: widget.scannedCode.isNotEmpty ? widget.scannedCode : '',
+    );
     _nameController = TextEditingController(text: item?.name ?? '');
     _quantityController = TextEditingController(
       text: item != null ? item.quantity.toString() : '',
@@ -61,20 +82,25 @@ class _ProductFormState extends State<ProductForm> {
   @override
   void didUpdateWidget(ProductForm oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.initialItem != oldWidget.initialItem) {
+    if (widget.initialItem != oldWidget.initialItem ||
+        widget.scannedCode != oldWidget.scannedCode) {
       _initControllers();
+      _requestQuantityFocus();
       if (mounted) setState(() {});
     }
   }
 
   @override
   void dispose() {
+    _stockCodeController.dispose();
     _nameController.dispose();
     _quantityController.dispose();
+    _quantityFocusNode.dispose();
     super.dispose();
   }
 
   void _clearForm() {
+    _stockCodeController.clear();
     _nameController.clear();
     _quantityController.clear();
     setState(() {
@@ -86,35 +112,43 @@ class _ProductFormState extends State<ProductForm> {
     if (_formKey.currentState!.validate()) {
       final state = context.read<StockBloc>().state;
       String depoAdi = "";
-      if (state is StockLoaded && state.depos.isNotEmpty) {
-        if (widget.selectedDepoCode != null) {
-          final selectedDepo = state.depos.firstWhere(
-            (d) => d.code == widget.selectedDepoCode,
-            orElse: () => state.depos.first,
-          );
-          depoAdi = selectedDepo.name;
-        } else {
-          // Fallback if no code usage
-          depoAdi = state.depos.first.name;
+      String countType = "A";
+      if (state is StockLoaded) {
+        countType = state.countType;
+        if (state.depos.isNotEmpty) {
+          if (widget.selectedDepoCode != null) {
+            final selectedDepo = state.depos.firstWhere(
+              (d) => d.code == widget.selectedDepoCode,
+              orElse: () => state.depos.first,
+            );
+            depoAdi = selectedDepo.name;
+          } else {
+            depoAdi = state.depos.first.name;
+          }
         }
       }
+
+      final stockCode = _isManualEntry
+          ? _stockCodeController.text.trim()
+          : (widget.initialItem?.stockCode ?? widget.scannedCode);
+      final barcode = _isManualEntry
+          ? _stockCodeController.text.trim()
+          : widget.scannedCode;
 
       final count = StockCount(
         id: null, // Always new ID
         companyId: "1", // Mock/Config
         year: DateTime.now().year,
         month: DateTime.now().month,
-        warehouseName: depoAdi, // Placeholder
-        stockCode:
-            widget.initialItem?.stockCode ??
-            widget.scannedCode, // Use real stock code if available
-        barcode: widget.scannedCode, // Scanned code is the barcode
+        warehouseName: depoAdi,
+        stockCode: stockCode,
+        barcode: barcode,
         name: _nameController.text,
         quantity: double.parse(_quantityController.text),
         countDate: DateTime.now(),
         recordDate: DateTime.now(),
         description: 'Sayım Uygulaması',
-        countType: "A",
+        countType: countType,
       );
 
       context.read<StockBloc>().add(AddLocalStock(count));
@@ -150,44 +184,53 @@ class _ProductFormState extends State<ProductForm> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFFFD9B3), Color(0xFFFFCA99)],
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.inventory,
-                        color: Color(0xFF8B5A2B),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Ürün Bilgisi',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF2D5A3D),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: _isManualEntry
+                                ? [const Color(0xFFB3D9FF), const Color(0xFF99CAFF)]
+                                : [const Color(0xFFFFD9B3), const Color(0xFFFFCA99)],
                           ),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        Text(
-                          widget.scannedCode,
-                          style: const TextStyle(
-                            fontFamily: 'monospace',
-                            fontSize: 12,
-                            color: Color(0xFF6B8F7A),
-                          ),
+                        child: Icon(
+                          _isManualEntry ? Icons.edit_note : Icons.inventory,
+                          color: _isManualEntry
+                              ? const Color(0xFF2B5A8B)
+                              : const Color(0xFF8B5A2B),
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _isManualEntry ? 'Manuel Giriş' : 'Ürün Bilgisi',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2D5A3D),
+                              ),
+                            ),
+                            if (!_isManualEntry)
+                              Text(
+                                widget.scannedCode,
+                                style: const TextStyle(
+                                  fontFamily: 'monospace',
+                                  fontSize: 12,
+                                  color: Color(0xFF6B8F7A),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 IconButton(
                   onPressed: widget.onCancel,
@@ -196,14 +239,36 @@ class _ProductFormState extends State<ProductForm> {
               ],
             ),
             const SizedBox(height: 20),
+            if (_isManualEntry) ...[
+              const ProductLabel(text: 'Stok Kodu'),
+              TextFormField(
+                controller: _stockCodeController,
+                decoration: _inputDecoration('Stok kodu girin...'),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Stok kodu girin';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+            ],
             if (widget.initialItem != null)
               ProductInfoCard(stockItem: widget.initialItem!),
 
             const ProductLabel(text: 'Ürün Adı'),
             TextFormField(
               controller: _nameController,
-              readOnly: true,
-              decoration: _inputDecoration('Ürün adı...'),
+              readOnly: !_isManualEntry,
+              decoration: _inputDecoration(_isManualEntry ? 'Ürün adı girin...' : 'Ürün adı...'),
+              validator: _isManualEntry
+                  ? (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Ürün adı girin';
+                      }
+                      return null;
+                    }
+                  : null,
             ),
             const SizedBox(height: 12),
             Row(
@@ -215,6 +280,7 @@ class _ProductFormState extends State<ProductForm> {
                       const ProductLabel(text: 'Miktar'),
                       TextFormField(
                         controller: _quantityController,
+                        focusNode: _quantityFocusNode,
                         keyboardType: TextInputType.number,
                         decoration: _inputDecoration('0'),
                         validator: (value) {

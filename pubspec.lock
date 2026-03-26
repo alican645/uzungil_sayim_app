@@ -85,10 +85,10 @@ packages:
     dependency: "direct dev"
     description:
       name: build_runner
-      sha256: ac78098de97893812b7aff1154f29008fa2464cad9e8e7044d39bc905dad4fbc
+      sha256: "39ad4ca8a2876779737c60e4228b4bcd35d4352ef7e14e47514093edc012c734"
       url: "https://pub.dev"
     source: hosted
-    version: "2.11.0"
+    version: "2.11.1"
   built_collection:
     dependency: transitive
     description:
@@ -521,7 +521,7 @@ packages:
     source: hosted
     version: "1.9.1"
   path_provider:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
       name: path_provider
       sha256: "50c5dd5b6e1aaf6fb3a78b33f6aa3afca52bf903a8a5298f53101fdaee55bbcd"
@@ -769,18 +769,18 @@ packages:
     dependency: "direct main"
     description:
       name: syncfusion_flutter_charts
-      sha256: b653eb02292cf521dacd57e00d77db4ed7bf5c73442495d2206bc958ab872616
+      sha256: "6ce73b77d5ad341f83f75afbf860068f6522a66c7639f60ebb5ba0ac03f643e1"
       url: "https://pub.dev"
     source: hosted
-    version: "32.2.3"
+    version: "32.2.4"
   syncfusion_flutter_core:
     dependency: transitive
     description:
       name: syncfusion_flutter_core
-      sha256: "0fdd1d5e435c3fc89a5d9558ddfd9cb9272500433b141fa2068e9e5607d1c63a"
+      sha256: "28cccd7e6235ab6efad75bad72bbfad6fc52f371f923f53f7f6f77e79a857da0"
       url: "https://pub.dev"
     source: hosted
-    version: "32.2.3"
+    version: "32.2.4"
   term_glyph:
     dependency: transitive
     description:

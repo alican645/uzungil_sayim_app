@@ -4,7 +4,15 @@ import '../../../core/application/stock/stock_bloc.dart';
 import '../../../core/application/stock/stock_state.dart';
 
 class SayimAppBar extends StatelessWidget {
-  const SayimAppBar({super.key});
+  final VoidCallback onSayimBaslat;
+  final bool isSayimStart;
+  final String countType;
+  const SayimAppBar({
+    super.key,
+    required this.onSayimBaslat,
+    required this.isSayimStart,
+    this.countType = 'A',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -60,6 +68,46 @@ class SayimAppBar extends StatelessWidget {
                 ],
               ),
             ],
+          ),
+          if (isSayimStart)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: countType == 'A'
+                    ? const Color(0xFFE8F4EC)
+                    : const Color(0xFFFFF3CD),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                countType == 'A' ? 'Aylık' : 'Günlük',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: countType == 'A'
+                      ? const Color(0xFF2D5A3D)
+                      : const Color(0xFF856404),
+                ),
+              ),
+            ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: const Color(0xFF2D5A3D),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: InkWell(
+              onTap: onSayimBaslat,
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(
+                  isSayimStart ? "Sayım Tipi" : "Sayım Başlat",
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),

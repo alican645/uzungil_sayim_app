@@ -73,6 +73,27 @@ class DeleteLocalStock extends StockEvent {
 
 class ClearLocalStocks extends StockEvent {}
 
+class SetCountType extends StockEvent {
+  final String type;
+  const SetCountType(this.type);
+
+  @override
+  List<Object> get props => [type];
+}
+
+class ChangeStockGroupWarehouse extends StockEvent {
+  final List<int> ids;
+  final String newWarehouseName;
+
+  const ChangeStockGroupWarehouse({
+    required this.ids,
+    required this.newWarehouseName,
+  });
+
+  @override
+  List<Object> get props => [ids, newWarehouseName];
+}
+
 class ProcessToVega extends StockEvent {
   final int year;
   final int month;

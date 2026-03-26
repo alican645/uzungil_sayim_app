@@ -12,8 +12,8 @@ class AppConfig {
       case Environment.dev:
         // Use localhost for iOS simulator, 10.0.2.2 for Android emulator
         // Adjust port if needed
-        // return 'http://192.168.10.2:82';
-        return 'http://localhost:5149';
+        return 'http://192.168.10.2:82';
+      //return 'http://localhost:5149';
       case Environment.staging:
         return 'https://staging-api.example.com';
       case Environment.prod:

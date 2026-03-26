@@ -34,6 +34,8 @@ class StockLocalDataSource implements IStockLocalDataSource {
   Future<void> updateStockCount(StockCountModel item) async {
     if (item.isInBox) {
       await item.save();
+    } else if (item.id != null && _box.containsKey(item.id)) {
+      await _box.put(item.id, item);
     }
   }
 

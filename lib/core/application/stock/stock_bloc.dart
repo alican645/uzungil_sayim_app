@@ -24,6 +24,8 @@ class StockBloc extends Bloc<StockEvent, StockState> {
     on<DeleteLocalStock>(_onDeleteLocalStock);
     on<ClearLocalStocks>(_onClearLocalStocks);
     on<ProcessToVega>(_onProcessToVega);
+    on<ChangeStockGroupWarehouse>(_onChangeStockGroupWarehouse);
+    on<SetCountType>(_onSetCountType);
   }
 
   Future<void> _onGetStockByBarcode(
@@ -88,10 +90,26 @@ class StockBloc extends Bloc<StockEvent, StockState> {
     if (state is StockLoaded) {
       final currentState = state as StockLoaded;
       final query = event.query.toLowerCase();
+
+      // Filter remote stocks (if needed)
       final filtered = currentState.stocks.where((item) {
         return item.code.toLowerCase().contains(query) ||
             item.name.toLowerCase().contains(query);
       }).toList();
+
+      // Filter local stocks
+      final filteredLocal = currentState.localStocks.where((item) {
+        return item.stockCode.toLowerCase().contains(query) ||
+            item.name.toLowerCase().contains(query) ||
+            (item.barcode?.toLowerCase().contains(query) ?? false);
+      }).toList();
+
+      emit(
+        currentState.copyWith(
+          filteredStocks: filtered,
+          filteredLocalStocks: filteredLocal,
+        ),
+      );
     }
   }
 
@@ -99,10 +117,15 @@ class StockBloc extends Bloc<StockEvent, StockState> {
     final result = await repository.getDepos();
     result.fold((failure) => emit(StockError(failure.message)), (depos) {
       if (state is StockLoaded) {
-        emit((state as StockLoaded).copyWith(depos: depos));
+        emit((state as StockLoaded).copyWith(depos: depos, deposLoaded: true));
       } else {
         emit(
-          StockLoaded(stocks: const [], filteredStocks: const [], depos: depos),
+          StockLoaded(
+            stocks: const [],
+            filteredStocks: const [],
+            depos: depos,
+            deposLoaded: true,
+          ),
         );
       }
     });
@@ -115,13 +138,19 @@ class StockBloc extends Bloc<StockEvent, StockState> {
     final result = await repository.getAllLocalStocks();
     result.fold((failure) => emit(StockError(failure.message)), (localStocks) {
       if (state is StockLoaded) {
-        emit((state as StockLoaded).copyWith(localStocks: localStocks));
+        emit(
+          (state as StockLoaded).copyWith(
+            localStocks: localStocks,
+            filteredLocalStocks: localStocks, // Reset filter when reloading
+          ),
+        );
       } else {
         emit(
           StockLoaded(
             stocks: const [],
             filteredStocks: const [],
             localStocks: localStocks,
+            filteredLocalStocks: localStocks,
           ),
         );
       }
@@ -280,5 +309,55 @@ class StockBloc extends Bloc<StockEvent, StockState> {
         );
       },
     );
+  }
+
+  Future<void> _onChangeStockGroupWarehouse(
+    ChangeStockGroupWarehouse event,
+    Emitter<StockState> emit,
+  ) async {
+    if (state is! StockLoaded) return;
+    final currentState = state as StockLoaded;
+
+    for (final id in event.ids) {
+      final item = currentState.localStocks.firstWhere(
+        (s) => s.id == id,
+        orElse: () => throw Exception('Item not found: $id'),
+      );
+      final updated = StockCount(
+        id: item.id,
+        companyId: item.companyId,
+        year: item.year,
+        month: item.month,
+        warehouseName: event.newWarehouseName,
+        stockCode: item.stockCode,
+        barcode: item.barcode,
+        name: item.name,
+        quantity: item.quantity,
+        countDate: item.countDate,
+        recordDate: item.recordDate,
+        description: item.description,
+        countType: item.countType,
+      );
+      final result = await repository.updateLocalStock(updated);
+      result.fold((failure) {
+        debugPrint('Error updating warehouse for id $id: ${failure.message}');
+      }, (_) {});
+    }
+
+    add(LoadLocalStocks());
+  }
+
+  void _onSetCountType(SetCountType event, Emitter<StockState> emit) {
+    if (state is StockLoaded) {
+      emit((state as StockLoaded).copyWith(countType: event.type));
+    } else {
+      emit(
+        StockLoaded(
+          stocks: const [],
+          filteredStocks: const [],
+          countType: event.type,
+        ),
+      );
+    }
   }
 }
